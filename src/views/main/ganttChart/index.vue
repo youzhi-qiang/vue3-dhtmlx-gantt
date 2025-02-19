@@ -4,7 +4,7 @@
 			<div class="time-box">
 				<el-radio-group v-model="timeState" @change="changeTime">
 					<el-radio-button label="day">日</el-radio-button>
-					<el-radio-button label="week">周</el-radio-button>
+					<!-- <el-radio-button label="week">周</el-radio-button> -->
 					<el-radio-button label="month">月</el-radio-button>
 					<el-radio-button label="year">年</el-radio-button>
 				</el-radio-group>
@@ -24,8 +24,10 @@
 				</div>
 			</div>
 		</div>
-		<div id="gantt_here" ref="ganttRef"></div>
+	<div id="gantt_here" ref="ganttRef"  ></div>
+
 	</section>
+
 </template>
 
 <script setup lang="ts">
@@ -33,9 +35,11 @@ import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { gantt } from 'dhtmlx-gantt'
 import 'dhtmlx-gantt/codebase/dhtmlxgantt.css'
 import dayjs from 'dayjs'
+import { id } from 'element-plus/es/locale'
 
 const ganttRef = ref()
 const timeState = ref('day')
+const tasksDatas = ref([])
 
 const props = defineProps({
 	realData: {
@@ -112,7 +116,7 @@ const initGanttConfig = () => {
 	gantt.config.readonly = true
 	gantt.config.show_progress = false
 	gantt.config.mark_today = true
-	gantt.config.scale_height = 50
+	gantt.config.scale_height = 40
 	gantt.config.min_column_width = 50
 	gantt.config.fit_tasks = true
 	gantt.config.show_grid = true
@@ -130,27 +134,36 @@ const initGanttConfig = () => {
 		{
 			name: "projectName",
 			label: "项目名称",
-			tree: true,
+			// tree: true,
+			align: "center",
+
 			width: 120,
 		},
 		{
 			name: "startTime",
 			label: "预计开始",
-			width: 100,
+			width: 85,
 			align: "center",
-			template: (task) => dayjs(task.startTime).format('YYYY-MM-DD')
+			template: (task) =>{
+				if(!task.startTime) return '暂未设置'
+				return dayjs(task.startTime).format('YYYY-MM-DD')
+			} 
 		},
 		{
 			name: "endTime",
 			label: "预计结束",
-			width: 100,
+			width: 85,
 			align: "center",
-			template: (task) => dayjs(task.endTime).format('YYYY-MM-DD')
+			template: (task) =>{
+				console.log('单条任务数据',task)
+				if(!task.endTime) return '暂未设置'
+				return dayjs(task.endTime).format('YYYY-MM-DD')
+			}  
 		},
 		{
 			name: "projectTotalTime",
 			label: "工期",
-			width: 50,
+			width: 80,
 			align: "center",
 
 		},
@@ -239,11 +252,11 @@ const initGanttConfig = () => {
 	}
 
 	// 启用工具提示
-	gantt.config.show_quick_info = false  // 禁用默认的快速信息
-	gantt.config.tooltip_timeout = 0      // 设置显示延迟为0
-	gantt.config.tooltip_offset_x = 10    // 设置水平偏移
-	gantt.config.tooltip_offset_y = 20    // 设置垂直偏移
-	gantt.config.tooltip_hide_timeout = 50 // 设置隐藏延迟
+	// gantt.config.show_quick_info = false  // 禁用默认的快速信息
+	// gantt.config.tooltip_timeout = 0      // 设置显示延迟为0
+	// gantt.config.tooltip_offset_x = 0   // 设置水平偏移
+	// gantt.config.tooltip_offset_y = 20    // 设置垂直偏移
+	// gantt.config.tooltip_hide_timeout = 50 // 设置隐藏延迟
 
 	// 配置工具提示内容
 	gantt.templates.tooltip_text = (start, end, task) => {
@@ -265,32 +278,83 @@ const initGanttConfig = () => {
 	gantt.templates.tooltip_date_format = (date) => {
 		return dayjs(date).format('YYYY-MM-DD')
 	}
+	const secondGridColumns = {
 
-	// 配置布局
-	gantt.config.layout = {
-		css: "gantt_container",
-		rows: [
+		columns: [
 			{
-				cols: [
-					{
-						width: 450,
-						min_width: 300,
-						rows: [
-							{ view: "grid", scrollX: "gridScroll", scrollable: true, scrollY: "scrollVer" }
-						]
-					},
-					{ resizer: true, width: 1 },
-					{
-						rows: [
-							{ view: "timeline", scrollX: "scrollHor", scrollY: "scrollVer" },
-							{ view: "scrollbar", id: "scrollHor", height: 20 }
-						]
-					},
-					{ view: "scrollbar", id: "scrollVer" }
-				]
-			}
-		]
-	}
+				name: "remainingQuestion", label: "存在问题", width: 60, align: "center",
+				template: function (task: any) {
+					console.log('单条数据', task)
+					return task.remainingQuestion ?? ''
+				}
+			},
+			{
+				name: "principalDutyPerson", width: 80, label: "主要负责人", template: function (task: any) {
+					return task.principalDutyPerson ?? ''
+
+				}
+			},
+			{
+				name: "principalChargePerson", width: 80, label: "主要责任人", template: function (task: any) {
+					return task.principalChargePerson ?? ''
+
+				}
+			},
+			{
+				name: "dutyPerson", width: 80, label: "责任人", template: function (task: any) {
+					return task.dutyPerson ?? ''
+
+				}
+			}]
+	};
+	gantt.config.layout = {
+    css: "gantt_container",
+    rows: [
+        {
+            cols: [
+                // 左侧表格（grid）
+                {
+                    width: 450,
+                    min_width: 300,
+                    rows: [
+                        { 
+                            view: "grid", 
+                            scrollX: "gridScroll", 
+                            scrollable: true, 
+                            scrollY: "scrollVer" // 使用统一的滚动条
+                        }
+                    ]
+                },
+                // 中间部分：时间轴（Gantt 图）
+                {
+                    rows: [
+                        { 
+                            view: "timeline", 
+                            scrollX: "scrollHor", 
+                            scrollY: "scrollVer" // 使用统一的滚动条
+                        },
+                        { view: "scrollbar", id: "scrollHor", height: 5 }
+                    ]
+                },
+                // 右侧表格（grid）
+                {   id: "gridRight",
+                    view: "grid",  
+                    width: 300,
+                    bind: "task", // 绑定任务数据
+                    scrollY: "scrollVer", // 与左侧表格的纵向滚动条共享滚动
+                    config: secondGridColumns // 右侧表格的配置
+                },
+
+                { view: "scrollbar", id: "scrollVer" } // 纵向滚动条，确保只使用一个
+            ]
+        },
+        // 外部的横向滚动条
+        { view: "scrollbar", id: "scrollHor" }
+    ]
+};
+
+
+ 
 
 	// 隐藏横向网格线
 	gantt.templates.grid_row_class = () => 'no-horizontal-line'
@@ -312,7 +376,7 @@ const initGanttConfig = () => {
 
 	// 配置滚动行为
 	gantt.config.scroll_on = true
-	gantt.config.scroll_size = 50
+	gantt.config.scroll_size = 5
 	gantt.config.autoscroll = true
 	gantt.config.autoscroll_speed = 30
 
@@ -325,8 +389,10 @@ const initGanttConfig = () => {
 
 	// 启用平滑滚动
 	gantt.config.scroll_smooth = true
-	gantt.config.scroll_size = 50
+	gantt.config.scroll_size = 5
 	gantt.config.autoscroll = true
+	gantt.config.show_empty_tasks = true;
+	gantt.config.auto_scheduling = false;
 
 
 }
@@ -339,24 +405,56 @@ const initGantt = () => {
 	if (gantt.clearAll) {
 		gantt.clearAll()
 	}
+	console.log('Processed tasks===:', props.realData.data)
+	const convertToDateTime = (date: string, type: number, addDay: boolean) => {
+		if (date) {
+			// 确保输入格式为 YYYY-MM-DD
+			const dateParts = date.split('-');
+			if (dateParts.length === 3) {
+				let [year, month, day] = dateParts;
 
-	// 处理数据
-	const tasks = props.realData.data.map((item: { id: any; projectName: any; startTime: string | number | Date; endTime: string | number | Date; showEndTime: any; projectTotalTime: any; projectStatus: any; }) => ({
-		id: item.id,
-		text: item.projectName,
-		projectName: item.projectName,
-		startTime: item.startTime,
-		endTime: item.endTime,
-		showEndTime: item.showEndTime,
-		start_date: new Date(item.startTime),
-		end_date: new Date(item.endTime),
-		progress: 0,
-		projectTotalTime: item.projectTotalTime,
-		projectStatus: item.projectStatus,
-		duration: 1
-	}))
+				// 创建日期对象，默认时间为 00:00:00
+				let dateObj = new Date(`${year}-${month}-${day}T${addDay ? '23:59:59' : '00:00:00'}`);
 
-	console.log('Processed tasks:', tasks)
+				// 根据 type 返回结果
+				if (type === 1) {
+					// 返回字符串格式：YYYY-MM-DD HH:mm:ss
+					return `${dateObj.getFullYear()}-${(dateObj.getMonth() + 1).toString().padStart(2, '0')}-${dateObj.getDate().toString().padStart(2, '0')} ${addDay ? '23:59:59' : '00:00:00'}`;
+				} else if (type === 2) {
+					// 返回 Date 对象
+					return dateObj;
+				}
+			} else {
+				return undefined;  // 如果日期格式不正确
+			}
+		}
+		return undefined;  // 如果日期为空
+	};
+
+	tasksDatas.value = props.realData.data.map((item: any, index: number) => {
+		return {
+			id: item.id,
+			text: item.projectName,
+			projectName: item.projectName,
+			startTime: convertToDateTime(item.startTime, 1, false),
+			endTime: convertToDateTime(item.endTime, 1, true),
+			showEndTime: convertToDateTime(item.showEndTime, 1, false),
+			start_date: convertToDateTime(item.startTime, 2, false),  // 使用格式化函数
+			end_date: convertToDateTime(item.endTime, 2, true),      // 使用格式化函数
+			progress: 0,
+			projectTotalTime: item.projectTotalTime ?? 0,
+			projectStatus: item.projectStatus,
+			duration: 1,
+			dutyPerson: item.dutyPerson || '',
+			principalDutyPerson: item.principalDutyPerson || '',
+			principalChargePerson: item.principalChargePerson || '',
+			remainingQuestion: item.remainingQuestion || '',
+			$index: index  // 显式添加 index
+		};
+	});
+
+
+	console.log('Processed tasks:', tasksDatas.value)
 
 	// 初始化配置
 	initGanttConfig()
@@ -365,45 +463,99 @@ const initGantt = () => {
 	gantt.init('gantt_here')
 
 	// 设置时间范围
-	const dates = tasks
+	const dates = tasksDatas.value
 		.map((task: { startTime: string | number | Date | null; endTime: string | number | Date | null; showEndTime: string | number | Date | null; }) => {
-			// 过滤掉空的时间
-			if (task.startTime && task.endTime) {
-				return [
-					new Date(task.startTime),
-					new Date(task.endTime),
-					task.showEndTime ? new Date(task.showEndTime) : null,
-					new Date()
-				];
+			// 直接在 map 阶段过滤掉 startTime 和 endTime 都为空的任务
+			if (!task.startTime || !task.endTime) {
+				return null; // 返回 null 以便后续过滤
 			}
-			return [];  // 返回空数组，如果 startTime 或 endTime 为 null 或 undefined
+			return [
+				new Date(task.startTime),
+				new Date(task.endTime),
+				task.showEndTime ? new Date(task.showEndTime) : null,
+				new Date()
+			];
 		})
-		.filter((datePair: any[]) => datePair.length > 0 && datePair.every(date => date !== null && date !== undefined))  // 过滤掉空数组
-
+		.filter((datePair: any): datePair is Date[] => Array.isArray(datePair)); // 过滤掉 null
 	// 计算最小和最大时间 开始时间 结束时间 完成时间 当前时间  取中间的最小值最大值当甘特图的起止时间
-	const date1 = new Date(Math.min(...dates.map((d: Date) => d[0].getTime())))
-	const date2 = new Date(Math.max(...dates.map((d: Date) => d[1].getTime())))
-	const date3 = new Date(Math.max(...dates.map((d: Date) => d[2].getTime())))
-	const date4 = new Date(Math.max(...dates.map((d: Date) => d[3].getTime())))
-	const _dates = [date1, date2, date3, date4]
+	const getValidTimestamps = (index: number) =>
+		dates
+			.map(d => (d[index] instanceof Date ? d[index].getTime() : null))
+			.filter((time): time is number => time !== null); // 过滤掉 null 并确保是 number[]
 
-	const minDate = new Date(Math.min(..._dates.map((d: Date) => d.getTime())))
-	const maxDate = new Date(Math.max(..._dates.map((d: Date) => d.getTime())))
+	const safeMin = (index: number) => {
+		const validTimes = getValidTimestamps(index);
+		return validTimes.length > 0 ? new Date(Math.min(...validTimes)) : new Date(); // 如果没有有效时间，返回当前时间
+	};
+
+	const safeMax = (index: number) => {
+		const validTimes = getValidTimestamps(index);
+		return validTimes.length > 0 ? new Date(Math.max(...validTimes)) : new Date(); // 如果没有有效时间，返回当前时间
+	};
+
+	const date1 = safeMin(0);
+	const date11 = safeMax(0);
+	const date2 = safeMin(1);
+	const date22 = safeMax(1);
+	const date3 = safeMin(2);
+	const date33 = safeMax(2);
+	const date4 = safeMin(3);
+	const date44 = safeMax(3);
+	const _dates1 = [date1, date2, date3, date4]
+	const _dates2 = [date11, date22, date33, date44]
+
+	const minDate = new Date(Math.min(..._dates1.map((d: Date) => d.getTime())))
+	const maxDate = new Date(Math.max(..._dates2.map((d: Date) => d.getTime())))
+
 	// 扩展时间范围
 	minDate.setDate(minDate.getDate() - 14)
 	maxDate.setDate(maxDate.getDate() + 14)
 	console.log('minDate最小时间', minDate, 'maxDate最大时间', maxDate)
 	gantt.config.start_date = minDate
 	gantt.config.end_date = maxDate
+	// 禁用自动调度，以确保没有时间字段的任务不会被自动过滤掉
+	gantt.config.auto_scheduling = false;
+	gantt.config.show_empty_tasks = true;  // 显示没有时间的任务
+
+	// // 确保所有没有时间的任务设置默认时间
+	// gantt.attachEvent("onBeforeTaskAdd", function (id, task) {
+	// 	if (!task.start_date || !task.end_date) {
+	// 		let defaultDate = new Date();
+	// 		task.start_date = defaultDate;
+	// 		task.end_date = defaultDate;
+	// 		task.startTime = defaultDate,
+	// 			task.endTime = defaultDate
+	// 	}
+	// 	return true;
+	// });
+
+	// // 如果任务创建后没有时间字段，也设置默认时间
+	// gantt.attachEvent("onTaskCreated", function (task) {
+	// 	if (!task.start_date || !task.end_date) {
+	// 		let defaultDate = new Date();
+	// 		task.start_date = defaultDate;
+	// 		task.end_date = defaultDate;
+	// 		task.startTime = defaultDate,
+	// 			task.endTime = defaultDate
+	// 	}
+	// });
+	//    tasks[0] = {   ...tasks[2],...tasks[0]  }
+	console.log('任务数据', tasksDatas.value[0], tasksDatas.value[2])
 
 	// 加载数据
 	try {
-		gantt.parse({ data: tasks })
-		console.log('Data loaded successfully')
+
+		gantt.parse({ data: tasksDatas.value })
+
+
 	} catch (error) {
 		console.error('Error loading data:', error)
 	}
+	// tasks.forEach((item: any) => {
+	// 	console.log('显示任务',item )
 
+	// 		gantt.isTaskVisible(item.id)
+	// 	})
 	// 强制重新渲染
 	gantt.render()
 }
@@ -414,51 +566,7 @@ onMounted(() => {
 		console.log('Mounting component with data:', props.realData)
 		initGantt()
 
-		// 添加拖动滚动事件
-		let isDragging = false
-		let lastClientX = 0
-		let lastClientY = 0
-
-		const timeline = gantt.$container.querySelector('.gantt_task_bg')
-		if (timeline) {
-			timeline.style.cursor = 'grab'
-
-			gantt.event(timeline, 'mousedown', (e: MouseEvent) => {
-				if (e.button !== 0) return // 只响应左键
-				isDragging = true
-				lastClientX = e.clientX
-				lastClientY = e.clientY
-				timeline.style.cursor = 'grabbing'
-			})
-
-			gantt.event(document, 'mousemove', (e: MouseEvent) => {
-				if (!isDragging) return
-
-				const dx = lastClientX - e.clientX
-				const dy = lastClientY - e.clientY
-
-				const scrollContainer = gantt.$task.querySelector('.gantt_task')
-				if (scrollContainer) {
-					scrollContainer.scrollLeft += dx
-					scrollContainer.scrollTop += dy
-				}
-
-				lastClientX = e.clientX
-				lastClientY = e.clientY
-			})
-
-			gantt.event(document, 'mouseup', () => {
-				isDragging = false
-				timeline.style.cursor = 'grab'
-			})
-
-			// 防止拖动时选中文本
-			gantt.event(timeline, 'selectstart', (e: Event) => {
-				if (isDragging) {
-					e.preventDefault()
-				}
-			})
-		}
+		 
 	} catch (error) {
 		console.error('Error initializing gantt:', error)
 	}
@@ -466,13 +574,15 @@ onMounted(() => {
 
 // 清理事件监听
 onUnmounted(() => {
-	const timeline = gantt.$container?.querySelector('.gantt_task_bg')
-	if (timeline) {
-		gantt.eventRemove(timeline, 'mousedown')
-		gantt.eventRemove(document, 'mousemove')
-		gantt.eventRemove(document, 'mouseup')
-		gantt.eventRemove(timeline, 'selectstart')
-	}
+	// const timeline = gantt.$container?.querySelector('.gantt_task_bg')
+	// if (timeline) {
+	// 	gantt.eventRemove(timeline, 'mousedown')
+	// 	gantt.eventRemove(document, 'mousemove')
+	// 	gantt.eventRemove(document, 'mouseup')
+	// 	gantt.eventRemove(timeline, 'selectstart')
+	// }
+	// 获取类名为 'gantt_task_bg' 的元素
+
 })
 
 // 添加数据变化监听
@@ -565,15 +675,21 @@ onUnmounted(() => {
 
 
 	#gantt_here {
-		height: 500px;
-	}
+    width: 100%;
+    // min-height: calc(100vh - 52px); /* 最小高度为100vh - 52px */
+    height: 500px; /* 高度自适应内容，当内容不足时，撑满最小高度 */
+    // box-sizing: border-box; /* 确保 padding 不影响总高度 */
+	border-left: 1px solid #f0f0f0;
+	border-right: 1px solid #f0f0f0;
+}
 
+ 
 	// 添加拖动相关样式
 	:deep(.gantt_task_bg) {
 		cursor: grab;
 		user-select: none;
 		touch-action: none; // 禁用触摸操作的默认行为
-
+ 
 		&:active {
 			cursor: grabbing;
 		}
@@ -606,17 +722,17 @@ onUnmounted(() => {
 	// 优化滚动条样式
 	:deep(.gantt_hor_scroll) {
 		&::-webkit-scrollbar {
-			height: 8px;
+			height: 5px;
 		}
 
 		&::-webkit-scrollbar-track {
 			background: #f5f5f5;
-			border-radius: 4px;
+			border-radius: 2.5px;
 		}
 
 		&::-webkit-scrollbar-thumb {
 			background: #ddd;
-			border-radius: 4px;
+			border-radius: 2.5px;
 			cursor: pointer;
 
 			&:hover {
@@ -667,22 +783,22 @@ onUnmounted(() => {
 		background-color: #55b6f7;
 		border-color: #55b6f7;
 
-		&::after {
-			content: '';
-			position: absolute;
-			top: -10px;
+		// &::after {
+		// 	content: '';
+		// 	position: absolute;
+		// 	top: -10px;
 
-			right: -50px;
-			// width:60px;
-			height: 20px;
-			line-height: 20px;
-			margin-top: 10px;
-			background-color: #55b6f7;
-			border-left: 26px solid #55b6f7;
-			border-right: 27px solid #55b6f7;
-			border-top-right-radius: 2px;
-			border-bottom-right-radius: 2px;
-		}
+		// 	right: -50px;
+		// 	// width:60px;
+		// 	height: 20px;
+		// 	line-height: 20px;
+		// 	margin-top: 10px;
+		// 	background-color: #55b6f7;
+		// 	border-left: 26px solid #55b6f7;
+		// 	border-right: 27px solid #55b6f7;
+		// 	border-top-right-radius: 2px;
+		// 	border-bottom-right-radius: 2px;
+		// }
 	}
 
 	&.completed-task {
@@ -691,46 +807,55 @@ onUnmounted(() => {
 		background-color: #a855f7;
 		border-color: #9333ea;
 
-		&::after {
-			content: '';
-			position: absolute;
-			top: -10px;
+		// &::after {
+		// 	content: '';
+		// 	position: absolute;
+		// 	top: -10px;
 
-			right: -50px;
-			// width:60px;
-			height: 20px;
-			line-height: 20px;
-			margin-top: 10px;
-			background-color: #a855f7;
-			border-left: 26px solid #a855f7;
-			border-right: 27px solid #a855f7;
-			border-top-right-radius: 2px;
-			border-bottom-right-radius: 2px;
-		}
+		// 	right: -50px;
+		// 	// width:60px;
+		// 	height: 20px;
+		// 	line-height: 20px;
+		// 	margin-top: 10px;
+		// 	background-color: #a855f7;
+		// 	border-left: 26px solid #a855f7;
+		// 	border-right: 27px solid #a855f7;
+		// 	border-top-right-radius: 2px;
+		// 	border-bottom-right-radius: 2px;
+		// }
 	}
 }
+:deep(.gantt_task_bg) {
+  .gantt_task_row {
+    border-bottom: none; /* 默认没有底部边框 */
+	// border-left: none;
+	// border-right: none;
+    height: 40px !important;
+    line-height: 40px;
+    transition: background-color 0.2s ease;
 
-:deep(.gantt_task_row) {
-	border-bottom: none;
-	height: 40px !important;
-	line-height: 40px;
-	transition: background-color 0.2s ease;
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.02);
+    }
 
-	&:hover {
-		background-color: rgba(0, 0, 0, 0.02);
-	}
+    &.gantt_selected {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+  }
 
-	&.gantt_selected {
-		background-color: rgba(0, 0, 0, 0.05);
-	}
+  /* 给最后一个 .gantt_task_row 元素添加底部边框 */
+  .gantt_task_row:last-of-type {
+	border-bottom: 1px solid #dfe0e1; /* 最后一个元素有底部边框 */
+
+  }
 }
-
+ 
 :deep(.gantt_grid_scale),
 :deep(.gantt_task_scale) {
 	background-color: #fafafa;
 	color: #090909;
 	font-size: 12px;
-	border-bottom: 1px solid #e0e0e0;
+	// border-bottom: 1px solid #e0e0e0;
 	transition: all 0.3s ease;
 
 	&:hover {
@@ -792,8 +917,26 @@ onUnmounted(() => {
 			transparent 1px);
 	background-size: 50px 100%;
 	background-position: -1px 0;
+
 }
 
+ 
+
+:deep(.gantt_data_area) {
+	// height: auto !important;
+}
+:deep(.gridRight_cell ){
+    border-right:1px solid #e0e0e0;
+	
+}
+:deep(.gantt_layout_content ) {
+	height: auto !important;
+}
+:deep(.gridRight_cell .gantt_row_task){
+	border-left:1px solid #e0e0e0 !important;
+ 
+
+}
 :deep(.today-line) {
 	position: relative;
 	cursor: pointer;
@@ -803,7 +946,7 @@ onUnmounted(() => {
 		position: absolute;
 		top: 0;
 		bottom: 0;
-		left: 10%;
+		left: 0;
 		height: 100%;
 		width: 4px;
 		background-color: #ff4d4f;
@@ -919,39 +1062,39 @@ onUnmounted(() => {
 }
 
 // 优化表头中的今日标记
-:deep(.gantt_scale_cell) {
-	&.today-cell {
-		font-weight: bold;
-		color: #ff4d4f;
-		background-color: rgba(255, 77, 79, 0.05);
+// :deep(.gantt_scale_cell) {
+// 	&.today-cell {
+// 		font-weight: bold;
+// 		color: #ff4d4f;
+// 		background-color: rgba(255, 77, 79, 0.05);
 
-		// 左侧虚线
-		&::before {
-			content: '';
-			position: absolute;
-			top: 0;
-			bottom: 0;
-			left: 0;
-			width: 1px;
-			border-left: 1px dashed #ff4d4f;
-			z-index: 98;
-			opacity: 0.6;
-		}
+// 		// 左侧虚线
+// 		&::before {
+// 			content: '';
+// 			position: absolute;
+// 			top: 0;
+// 			bottom: 0;
+// 			left: 0;
+// 			width: 1px;
+// 			border-left: 1px dashed #ff4d4f;
+// 			z-index: 98;
+// 			opacity: 0.6;
+// 		}
 
-		// 右侧虚线
-		&::after {
-			content: '';
-			position: absolute;
-			top: 0;
-			bottom: 0;
-			right: 0;
-			width: 1px;
-			border-right: 1px dashed #ff4d4f;
-			z-index: 98;
-			opacity: 0.6;
-		}
-	}
-}
+// 		// 右侧虚线
+// 		&::after {
+// 			content: '';
+// 			position: absolute;
+// 			top: 0;
+// 			bottom: 0;
+// 			right: 0;
+// 			width: 1px;
+// 			border-right: 1px dashed #ff4d4f;
+// 			z-index: 98;
+// 			opacity: 0.6;
+// 		}
+// 	}
+// }
 
 // 任务区域中的今日列
 :deep(.gantt_task_cell) {
@@ -993,7 +1136,7 @@ onUnmounted(() => {
 
 // 任务��样式
 :deep(.gantt_task_line) {
-	transform: translateX(-18px);
+	// transform: translateX(-18px);
 
 	&.planned-task {
 		background-color: #55b6f7;
@@ -1047,11 +1190,11 @@ onUnmounted(() => {
 }
 
 // 确保工具提示显示在最上层
-:deep(.gantt_tooltip) {
-	z-index: 9999 !important;
-	position: absolute;
-	pointer-events: none;
-}
+// :deep(.gantt_tooltip) {
+// 	z-index: 9999 !important;
+// 	position: absolute;
+// 	pointer-events: none;
+// }
 
 // 完成时间线样式
 :deep(.completed-line) {
@@ -1062,12 +1205,12 @@ onUnmounted(() => {
 		content: '';
 		position: absolute;
 		bottom: 0;
-		left: 50%;
-		width: 100%;
+		//  left: 4%;
+		width: 50px;
 		height: 50%;
 		background-color: #52c41a;
 		z-index: 98;
-		transform: translateX(-50%);
+		// transform: translateX(-3%);
 	}
 
 
@@ -1085,4 +1228,22 @@ onUnmounted(() => {
 		top: -50px; // 避免提示重叠
 	}
 }
+:deep(.gantt_grid){
+	border-right: none !important;
+	border-left: none !important;
+
+}
+:deep(.gantt_container, .gantt_container *  ){
+	box-sizing: content-box !important;
+}
+:deep(.gantt_layout_cell_border_right){
+	border-right: none !important;
+	border-left: none !important;
+ 
+}
+// :deep(.gantt_layout_cell  .scrollHor_cell) {
+// 	 height: 12px !important;
+//     position: absolute !important;
+//     bottom: 0 !important;
+// }
 </style>
